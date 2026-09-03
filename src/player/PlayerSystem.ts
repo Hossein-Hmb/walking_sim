@@ -265,10 +265,11 @@ export class PlayerSystem implements System {
       body.velocity.y = PLAYER.jumpSpeed;
       this.jumpBuffer = 0;
       this.coyote = 0;
-      st.stamina = clamp01(st.stamina - LOCOMOTION.jumpStaminaCost);
+      // Stamina is parked — this is a walk, not a game. Restore these two lines to turn it back on.
+      // st.stamina = clamp01(st.stamina - LOCOMOTION.jumpStaminaCost);
     }
 
-    this.updateStamina(dt, moving, climb);
+    // this.updateStamina(dt, moving, climb);
     this.updateBalance(dt, ctx);
   }
 
