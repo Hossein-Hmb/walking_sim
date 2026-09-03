@@ -1,12 +1,12 @@
 /**
  * src/player/InputSystem.ts
  *
- * Contents: `InputSystem` — the one place raw browser input (keyboard, pointer, gamepad) is turned
- * into the engine-facing `InputState` snapshot declared in `core/types.ts`.
+ * Contents: `InputSystem` — the one place raw browser input (keyboard, pointer, gamepad, touch
+ * overlay) is turned into the engine-facing `InputState` snapshot declared in `core/types.ts`.
  *
  * Purpose: WS3 owns "how the game is controlled". Every other system reads `ctx.input.state` and
  * never touches a DOM event, so rebinding, adding a gamepad or swapping to touch controls is a
- * change confined to this file.
+ * change confined to this file (and `TouchControls.ts` for the overlay DOM).
  *
  * Bindings (PLAN.md WS3):
  *   Arrow keys / WASD  move (camera-relative — the camera basis is applied by PlayerSystem)
@@ -17,6 +17,7 @@
  *   F1                 debug overlay
  *   Esc                pause
  *   Gamepad            left stick move, right stick look, A jump, X interact, RB/RT sprint (optional, hot-plug)
+ *   Touch              left stick move, drag elsewhere to look, jump / run / read buttons
  *
  * Frame contract (WS0): the Engine calls `beginFrame()` before the fixed-step loop and `endFrame()`
  * after rendering. Edge-triggered flags (`jump`, `actions`) are therefore true for exactly one whole
@@ -29,8 +30,9 @@
  */
 
 import * as THREE from 'three';
-import { INPUT } from '../config/world.config';
+import { INPUT, TOUCH } from '../config/world.config';
 import type { ActionId, IInput, InputState } from '../core/types';
+import { TouchControls } from './TouchControls';
 
 /** Single-press keys that map straight onto an `ActionId`. */
 const KEY_ACTIONS: Readonly<Record<string, ActionId>> = {
@@ -74,10 +76,23 @@ export class InputSystem implements IInput {
   private readonly padLook = new THREE.Vector2();
   private padSprint = false;
 
+  private readonly touch = new TouchControls();
+  private lookPointerId: number | null = null;
+  private lastLookX = 0;
+  private lastLookY = 0;
+  private lookFromClient = false;
+
   /** Attach DOM listeners. `target` is the canvas — pointer capture and lock are scoped to it. */
   attach(target: HTMLElement): void {
     this.target = target;
     this.lastFrameMs = performance.now();
+    this.touch.onJump = () => {
+      this.jumpQueued = true;
+    };
+    this.touch.onInteract = () => {
+      this.queuedActions.add('interact');
+    };
+    this.touch.attach(document.body);
     window.addEventListener('keydown', this.onKeyDown);
     window.addEventListener('keyup', this.onKeyUp);
     window.addEventListener('blur', this.onBlur);
@@ -99,6 +114,7 @@ export class InputSystem implements IInput {
     window.removeEventListener('pointermove', this.onPointerMove);
     window.removeEventListener('pointerup', this.onPointerUp);
     window.removeEventListener('pointercancel', this.onPointerUp);
+    this.touch.dispose();
     this.target = null;
   }
 
@@ -129,10 +145,14 @@ export class InputSystem implements IInput {
       (this.held.has('ArrowRight') || this.held.has('KeyD') ? 1 : 0) -
       (this.held.has('ArrowLeft') || this.held.has('KeyA') ? 1 : 0);
 
-    s.move.set(strafe + this.padMove.x, forward + this.padMove.y);
+    s.move.set(strafe + this.padMove.x + this.touch.move.x, forward + this.padMove.y + this.touch.move.y);
     if (s.move.lengthSq() > 1) s.move.normalize();
 
-    s.sprint = this.held.has('ShiftLeft') || this.held.has('ShiftRight') || this.padSprint;
+    s.sprint =
+      this.held.has('ShiftLeft') ||
+      this.held.has('ShiftRight') ||
+      this.padSprint ||
+      this.touch.sprint;
     s.jump = this.jumpQueued;
     this.jumpQueued = false;
 
@@ -174,7 +194,9 @@ export class InputSystem implements IInput {
     this.held.clear();
     this.jumpQueued = false;
     this.dragging = false;
+    this.lookPointerId = null;
     this.lookAccum.set(0, 0);
+    this.touch.reset();
   };
 
   private readonly onVisibilityChange = (): void => {
@@ -188,21 +210,40 @@ export class InputSystem implements IInput {
   // -------------------------------------------------------------------------
 
   private readonly onPointerDown = (e: PointerEvent): void => {
-    if (e.button !== 0) return;
+    if (e.button !== 0 && e.pointerType !== 'touch') return;
+    if ((e.target as Element | null)?.closest?.('.touch')) return;
     this.dragging = true;
+    this.lookPointerId = e.pointerId;
+    this.lastLookX = e.clientX;
+    this.lastLookY = e.clientY;
+    this.lookFromClient = e.pointerType === 'touch' || e.pointerType === 'pen';
   };
 
   private readonly onPointerMove = (e: PointerEvent): void => {
     if (!this.dragging && !this.pointerLocked) return;
-    this.lookAccum.x += e.movementX;
-    this.lookAccum.y += e.movementY;
+    if (!this.pointerLocked && this.lookPointerId !== null && e.pointerId !== this.lookPointerId) {
+      return;
+    }
+    if (this.lookFromClient) {
+      this.lookAccum.x += (e.clientX - this.lastLookX) * TOUCH.lookScale;
+      this.lookAccum.y += (e.clientY - this.lastLookY) * TOUCH.lookScale;
+      this.lastLookX = e.clientX;
+      this.lastLookY = e.clientY;
+    } else {
+      this.lookAccum.x += e.movementX;
+      this.lookAccum.y += e.movementY;
+    }
   };
 
-  private readonly onPointerUp = (): void => {
+  private readonly onPointerUp = (e: PointerEvent): void => {
+    if (this.lookPointerId !== null && e.pointerId !== this.lookPointerId) return;
     this.dragging = false;
+    this.lookPointerId = null;
+    this.lookFromClient = false;
   };
 
   private readonly onDoubleClick = (): void => {
+    if (this.touch.active) return;
     if (!this.pointerLocked) this.requestPointerLock();
   };
 

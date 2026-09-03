@@ -807,6 +807,36 @@
   }
 }
 
+/* On-screen stick occupies the corners the stamina / readout / hints used to own. */
+body.is-touch .hud__hints {
+  display: none;
+}
+
+body.is-touch .hud__stamina {
+  top: 5.4em;
+  bottom: auto;
+  left: max(1.2em, env(safe-area-inset-left, 0px));
+}
+
+body.is-touch .hud__readout {
+  top: 5.4em;
+  bottom: auto;
+  right: max(1.2em, env(safe-area-inset-right, 0px));
+}
+
+body.is-touch .hud__prompt {
+  bottom: max(13.5em, calc(env(safe-area-inset-bottom, 0px) + 12em));
+}
+
+body.is-touch .hud__prompt .key,
+body.is-touch .lore__hint .key {
+  display: none;
+}
+
+body.is-touch .lore__hint span:last-child::before {
+  content: "read · ";
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hud,
   .hud__hints,

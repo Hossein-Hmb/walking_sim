@@ -485,6 +485,16 @@ export const INPUT = {
   gamepadLookPixelsPerSecond: 900,
 } as const;
 
+/** On-screen stick + jump / run / read. Shown on coarse/touch pointers only. */
+export const TOUCH = {
+  /** Knob travel as a fraction of the stick pad radius. */
+  stickTravel: 0.72,
+  /** Same meaning as `INPUT.gamepadDeadzone`. */
+  stickDeadzone: 0.18,
+  /** Touch look uses client-pixel deltas; scale them down relative to mouse `movementX`. */
+  lookScale: 0.85,
+} as const;
+
 export const LOCOMOTION = {
   /** Exponential approach rate for horizontal velocity while grounded / airborne. */
   groundAccelLambda: 14,
