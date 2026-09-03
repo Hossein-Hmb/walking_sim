@@ -1,0 +1,40 @@
+{
+  // tsconfig.json — type-checking configuration for the whole project.
+  //
+  // Contents: strict compiler options for the src/ tree plus the Vite config file.
+  // Purpose: `tsc` never emits here (Vite/esbuild does the transpiling); this is purely the type
+  // gate that `npm run typecheck` and `npm run build` enforce. `verbatimModuleSyntax` is on so
+  // type-only imports are always written as `import type`, which guarantees the shared-contract
+  // files (core/types.ts ↔ core/EventBus.ts) can reference each other without a runtime cycle.
+  //
+  // Two strictness flags are intentionally OFF, because both would tax every workstream without
+  // catching real bugs in this codebase:
+  //   - `noUnusedParameters`: implementations of the shared interfaces routinely ignore an argument
+  //     (e.g. `update(dt, ctx)` using only `ctx`).
+  //   - `noUncheckedIndexedAccess`: it types every `Float32Array` element read as `number |
+  //     undefined`, which would litter the terrain generator, heightfield builder and bilinear
+  //     sampler — all tight numeric loops — with non-null assertions.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["vite/client"],
+
+    "strict": true,
+    "noUncheckedIndexedAccess": false,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": false,
+    "forceConsistentCasingInFileNames": true,
+
+    "noEmit": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "useDefineForClassFields": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true
+  },
+  "include": ["src", "vite.config.ts"]
+}

@@ -1,0 +1,169 @@
+<!doctype html>
+<!--
+  index.html — the single page the game is served from.
+
+  Contents: the full-viewport WebGL canvas, a boot/loading overlay that is removed once systems
+  finish initialising, and the minimal base styling needed before any UI code loads.
+
+  Purpose: the app is a single canvas. WS7 owns all real UI (src/ui/hud.css + HudSystem); keep this
+  file to the bare shell so it does not become a second place where UI lives.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <!-- Inline favicon: keeps the console clean without adding an asset pipeline. -->
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230b1116'/%3E%3Cpath d='M2 22 L11 11 L18 19 L23 14 L30 22 Z' fill='%238fc4e0'/%3E%3Ccircle cx='23' cy='7' r='3' fill='%23eef5fa'/%3E%3C/svg%3E"
+    />
+    <title>Strandfall</title>
+    <style>
+      :root {
+        --ink: #d8e6ef;
+        --bg: #0b1116;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        max-width: 100%;
+        max-height: 100%;
+        overflow: hidden;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+        overscroll-behavior: none;
+      }
+
+      /*
+        CSS is the single owner of the canvas' layout box: `position: fixed; inset: 0` pins it to the
+        viewport, so it is exactly the window's size at every moment — on load, on resize, on zoom,
+        on fullscreen — with no JavaScript involved and nothing to go stale.
+
+        `display: block` and `max-width/height` matter because a canvas has an *intrinsic* size (its
+        width/height attributes, which are 1.5–2× the CSS size on a retina display). Without them the
+        browser can lay the element out at that intrinsic size and overflow the window.
+
+        Engine never writes width/height into the element's inline style; it reads this box back and
+        sizes the drawing buffer to match. See `Engine.syncSize`.
+      */
+      #game {
+        display: block;
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        max-width: 100%;
+        max-height: 100%;
+        z-index: 0;
+        touch-action: none;
+        outline: none;
+        cursor: grab;
+      }
+
+      #game:active {
+        cursor: grabbing;
+      }
+
+      #boot {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: grid;
+        place-items: center;
+        background: radial-gradient(120% 120% at 50% 30%, #16222c 0%, #080d12 70%);
+        transition: opacity 0.35s ease;
+      }
+
+      #boot.is-hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .boot__panel {
+        text-align: center;
+        max-width: 40rem;
+        padding: 0 1.5rem;
+      }
+
+      .boot__title {
+        margin: 0;
+        font-size: clamp(1.75rem, 5vw, 3rem);
+        font-weight: 300;
+        letter-spacing: 0.32em;
+        text-transform: uppercase;
+        color: #eef5fa;
+      }
+
+      .boot__sub {
+        margin: 0.75rem 0 2rem;
+        font-size: 0.85rem;
+        letter-spacing: 0.14em;
+        color: #7d94a3;
+      }
+
+      .boot__bar {
+        width: min(22rem, 70vw);
+        height: 2px;
+        margin: 0 auto;
+        background: rgba(216, 230, 239, 0.14);
+        overflow: hidden;
+      }
+
+      .boot__bar::after {
+        content: "";
+        display: block;
+        height: 100%;
+        width: 35%;
+        background: #8fc4e0;
+        animation: boot-slide 1.25s ease-in-out infinite;
+      }
+
+      .boot__panel pre {
+        text-align: left;
+        white-space: pre-wrap;
+        color: #ff8a7a;
+        font-size: 0.8rem;
+      }
+
+      @keyframes boot-slide {
+        0% {
+          transform: translateX(-100%);
+        }
+        100% {
+          transform: translateX(340%);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .boot__bar::after {
+          animation: none;
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="game" tabindex="0"></canvas>
+
+    <!-- Placeholder boot screen. WS7 replaces this with src/ui/LoadingScreen.ts. -->
+    <div id="boot">
+      <div class="boot__panel">
+        <h1 class="boot__title">Strandfall</h1>
+        <p class="boot__sub">preparing the island</p>
+        <div class="boot__bar"></div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
