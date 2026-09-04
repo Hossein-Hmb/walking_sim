@@ -72,7 +72,7 @@ export class PauseOverlay {
 
     this.panel = el('div', 'pause__panel', this.root);
     const title = el('h2', 'pause__title', this.panel);
-    title.textContent = 'Strandfall';
+    title.textContent = 'Iranzamin';
     const sub = el('p', 'pause__sub', this.panel);
     sub.textContent = 'paused — the island waits';
 

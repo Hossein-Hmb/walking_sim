@@ -75,7 +75,7 @@ export class LoadingScreen {
 
     const inner = el('div', 'loading__inner', this.root);
     const title = el('h1', 'loading__title', inner);
-    title.textContent = 'Strandfall';
+    title.textContent = 'Iranzamin';
     this.phase = el('p', 'loading__phase', inner);
     this.phase.textContent = 'preparing the island';
 
