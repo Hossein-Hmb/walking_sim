@@ -25,6 +25,7 @@
  * WS4's `TerrainPreviewSystem` (a stand-in island for the weeks before WS1 landed) is gone with it.
  */
 
+import { inject } from "@vercel/analytics";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { WORLD } from "./config/world.config";
 import { Engine } from "./core/Engine";
@@ -53,6 +54,9 @@ import { WorldSystem } from "./world/WorldSystem";
 async function bootstrap(): Promise<void> {
   const canvas = document.querySelector<HTMLCanvasElement>("#game");
   if (!canvas) throw new Error("#game canvas not found in index.html");
+
+  // Initialize Vercel Web Analytics
+  inject();
 
   const events = new EventBus();
   events.emit("loading:progress", { progress: 0.1, label: "starting physics" });
